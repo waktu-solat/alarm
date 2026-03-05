@@ -9,12 +9,15 @@ import android.app.Service
 import android.app.PendingIntent
 import android.app.ForegroundServiceStartNotAllowedException
 import android.app.Notification
+import android.app.NotificationChannel
+import android.app.NotificationManager
 import android.content.Intent
 import android.content.Context
 import android.content.pm.ServiceInfo
 import android.os.IBinder
 import android.os.PowerManager
 import android.os.Build
+import androidx.core.app.NotificationCompat
 import com.gdelataillade.alarm.models.AlarmSettings
 import com.gdelataillade.alarm.services.AlarmRingingLiveData
 import com.gdelataillade.alarm.services.NotificationHandler
@@ -25,6 +28,10 @@ import kotlinx.serialization.json.Json
 class AlarmService : Service() {
     companion object {
         private const val TAG = "AlarmService"
+        private const val STOP_ALARM_ACTION = "STOP_ALARM"
+        private const val BOOTSTRAP_CHANNEL_ID = "alarm_plugin_channel"
+        private const val BOOTSTRAP_CHANNEL_NAME = "Alarm Notification"
+        private const val BOOTSTRAP_NOTIFICATION_ID = 998877
 
         var instance: AlarmService? = null
 
@@ -58,9 +65,15 @@ class AlarmService : Service() {
 
         val id = intent.getIntExtra("id", 0)
         alarmId = id
-        val action = intent.getStringExtra(AlarmReceiver.EXTRA_ALARM_ACTION)
+        val action = intent.getStringExtra(AlarmReceiver.EXTRA_ALARM_ACTION) ?: intent.action
+        val foregroundNotificationId = if (id != 0) id else BOOTSTRAP_NOTIFICATION_ID
 
-        if (action == "STOP_ALARM" && id != 0) {
+        if (!tryStartForeground(foregroundNotificationId, buildBootstrapNotification(foregroundNotificationId))) {
+            stopSelf()
+            return START_NOT_STICKY
+        }
+
+        if (action == STOP_ALARM_ACTION && id != 0) {
             unsaveAlarm(id)
             return START_NOT_STICKY
         }
@@ -105,25 +118,13 @@ class AlarmService : Service() {
             id
         )
 
-        // Start the service in the foreground
-        try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                try {
-                    startAlarmService(id, notification)
-                } catch (e: ForegroundServiceStartNotAllowedException) {
-                    Log.e(TAG, "Foreground service start not allowed", e)
-                    return START_NOT_STICKY
-                }
-            } else {
-                startAlarmService(id, notification)
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Exception while starting foreground service: ${e.message}", e)
+        // Replace the bootstrap notification with full alarm content.
+        if (!tryStartForeground(foregroundNotificationId, notification)) {
             return START_NOT_STICKY
         }
 
         // Check if an alarm is already ringing
-        if (!alarmSettings.allowAlarmOverlap && ringingAlarmIds.isNotEmpty() && action != "STOP_ALARM") {
+        if (!alarmSettings.allowAlarmOverlap && ringingAlarmIds.isNotEmpty() && action != STOP_ALARM_ACTION) {
             Log.d(TAG, "An alarm is already ringing. Ignoring new alarm with id: $id")
             unsaveAlarm(id)
             return START_NOT_STICKY
@@ -229,6 +230,81 @@ class AlarmService : Service() {
         } else {
             startForeground(id, notification)
         }
+    }
+
+    private fun tryStartForeground(id: Int, notification: Notification): Boolean {
+        return try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                try {
+                    startAlarmService(id, notification)
+                    true
+                } catch (e: ForegroundServiceStartNotAllowedException) {
+                    Log.e(TAG, "Foreground service start not allowed", e)
+                    false
+                }
+            } else {
+                startAlarmService(id, notification)
+                true
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Exception while starting foreground service: ${e.message}", e)
+            false
+        }
+    }
+
+    private fun buildBootstrapNotification(notificationId: Int): Notification {
+        ensureBootstrapNotificationChannel()
+
+        val appIntent =
+            applicationContext.packageManager.getLaunchIntentForPackage(applicationContext.packageName)
+        val pendingIntent = appIntent?.let {
+            PendingIntent.getActivity(
+                this,
+                notificationId,
+                it,
+                PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+            )
+        }
+
+        val appIconResId = try {
+            applicationContext.packageManager.getApplicationInfo(applicationContext.packageName, 0).icon
+        } catch (e: Exception) {
+            android.R.drawable.ic_lock_idle_alarm
+        }
+
+        val builder = NotificationCompat.Builder(this, BOOTSTRAP_CHANNEL_ID)
+            .setSmallIcon(appIconResId)
+            .setContentTitle("Alarm is starting")
+            .setContentText("Preparing alarm playback")
+            .setPriority(NotificationCompat.PRIORITY_MAX)
+            .setCategory(NotificationCompat.CATEGORY_ALARM)
+            .setOngoing(true)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            .setSound(null)
+
+        if (pendingIntent != null) {
+            builder.setContentIntent(pendingIntent)
+        }
+
+        return builder.build()
+    }
+
+    private fun ensureBootstrapNotificationChannel() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
+
+        val notificationManager =
+            getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        val existingChannel = notificationManager.getNotificationChannel(BOOTSTRAP_CHANNEL_ID)
+        if (existingChannel != null) return
+
+        val channel = NotificationChannel(
+            BOOTSTRAP_CHANNEL_ID,
+            BOOTSTRAP_CHANNEL_NAME,
+            NotificationManager.IMPORTANCE_HIGH
+        ).apply {
+            setSound(null, null)
+        }
+        notificationManager.createNotificationChannel(channel)
     }
 
     fun handleStopAlarmCommand(alarmId: Int) {
