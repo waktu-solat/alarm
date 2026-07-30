@@ -16,7 +16,13 @@ class BootReceiver : BroadcastReceiver() {
         if (intent.action == Intent.ACTION_BOOT_COMPLETED) {
             Log.d(TAG, "Device rebooted, rescheduling alarms")
 
-            rescheduleAlarms(context)
+            // Anything thrown here surfaces as "Unable to start receiver" and kills the app on
+            // every boot, so failing to reschedule must never take the process down with it.
+            try {
+                rescheduleAlarms(context)
+            } catch (e: Throwable) {
+                Log.e(TAG, "Failed to reschedule alarms after boot", e)
+            }
         }
     }
 
