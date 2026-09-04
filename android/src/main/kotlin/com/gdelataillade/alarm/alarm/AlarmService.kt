@@ -12,6 +12,7 @@ import android.app.Notification
 import android.content.Intent
 import android.content.Context
 import android.content.pm.ServiceInfo
+import android.media.AudioManager
 import android.os.IBinder
 import android.os.PowerManager
 import android.os.Build
@@ -222,43 +223,65 @@ class AlarmService : Service() {
         // Read showSystemUI before any volume calls that depend on it
         showSystemUI = alarmSettings.volumeSettings.showSystemUI
 
-        // Set the volume if specified
-        if (alarmSettings.volumeSettings.volume != null) {
-            volumeService?.setVolume(
-                alarmSettings.volumeSettings.volume,
-                alarmSettings.volumeSettings.volumeEnforced,
-                showSystemUI,
+        // Alarm audio plays on STREAM_ALARM, which Android deliberately keeps
+        // independent of ringer mode — so a muted phone still rings unless we
+        // check the ringer ourselves. Users read that as a bug, so honour the
+        // ringer unless they explicitly opted out.
+        val ringerMode = (getSystemService(Context.AUDIO_SERVICE) as? AudioManager)?.ringerMode
+            ?: AudioManager.RINGER_MODE_NORMAL
+        val ringerSilent = ringerMode == AudioManager.RINGER_MODE_SILENT
+        val ringerVibrate = ringerMode == AudioManager.RINGER_MODE_VIBRATE
+        val silenceAudio = !alarmSettings.androidOverrideDeviceSilentMode &&
+            (ringerSilent || ringerVibrate)
+
+        // Silent means silent: no sound and no haptic. Vibrate mode keeps the
+        // haptic, which is the entire point of that mode.
+        val allowVibration = alarmSettings.vibrate &&
+            (alarmSettings.androidOverrideDeviceSilentMode || !ringerSilent)
+
+        if (silenceAudio) {
+            Log.d(TAG, "Ringer mode $ringerMode silences audio for alarm $id")
+        }
+
+        if (!silenceAudio) {
+            // Set the volume if specified
+            if (alarmSettings.volumeSettings.volume != null) {
+                volumeService?.setVolume(
+                    alarmSettings.volumeSettings.volume,
+                    alarmSettings.volumeSettings.volumeEnforced,
+                    showSystemUI,
+                    alarmSettings.preferConnectedAudioDevice
+                )
+            }
+
+            // Request audio focus
+            volumeService?.requestAudioFocus(alarmSettings.preferConnectedAudioDevice)
+
+            // Set up audio completion listener
+            audioService?.setOnAudioCompleteListener(id) {
+                if (!alarmSettings.loopAudio) {
+                    vibrationService?.stopVibrating()
+                    volumeService?.restorePreviousVolume(showSystemUI)
+                    volumeService?.abandonAudioFocus()
+                }
+            }
+
+            // Play the alarm audio
+            audioService?.playAudio(
+                id,
+                alarmSettings.assetAudioPath,
+                alarmSettings.loopAudio,
+                alarmSettings.volumeSettings.fadeDuration,
+                alarmSettings.volumeSettings.fadeSteps,
                 alarmSettings.preferConnectedAudioDevice
             )
         }
-
-        // Request audio focus
-        volumeService?.requestAudioFocus(alarmSettings.preferConnectedAudioDevice)
-
-        // Set up audio completion listener
-        audioService?.setOnAudioCompleteListener(id) {
-            if (!alarmSettings.loopAudio) {
-                vibrationService?.stopVibrating()
-                volumeService?.restorePreviousVolume(showSystemUI)
-                volumeService?.abandonAudioFocus()
-            }
-        }
-
-        // Play the alarm audio
-        audioService?.playAudio(
-            id,
-            alarmSettings.assetAudioPath,
-            alarmSettings.loopAudio,
-            alarmSettings.volumeSettings.fadeDuration,
-            alarmSettings.volumeSettings.fadeSteps,
-            alarmSettings.preferConnectedAudioDevice
-        )
 
         // Update the list of ringing alarms
         ringingAlarmIds = audioService?.getPlayingMediaPlayersIds() ?: listOf()
 
         // Start vibration if enabled
-        if (alarmSettings.vibrate) {
+        if (allowVibration) {
             vibrationService?.startVibrating(longArrayOf(0, 500, 500), 1)
         }
 

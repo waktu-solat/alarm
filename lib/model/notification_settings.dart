@@ -21,6 +21,7 @@ class NotificationSettings extends Equatable {
     this.iconColor,
     this.keepNotificationAfterAlarmEnds = false,
     this.androidStopAlarmOnDismiss = true,
+    this.androidLocalOnly = false,
   });
 
   /// Converts the JSON object to a `NotificationSettings` instance.
@@ -117,6 +118,13 @@ class NotificationSettings extends Equatable {
   /// Defaults to `true`, which is how the plugin has behaved since 5.0.3.
   final bool androidStopAlarmOnDismiss;
 
+  /// Whether the notification is withheld from paired wearables
+  /// (`Notification.FLAG_LOCAL_ONLY`).
+  ///
+  /// Set when a companion watch app raises its own alert, so one alarm does
+  /// not buzz the wrist twice. Android only.
+  final bool androidLocalOnly;
+
   /// Converts the `NotificationSettings` instance to a JSON object.
   Map<String, dynamic> toJson() => _$NotificationSettingsToJson(this);
 
@@ -133,6 +141,7 @@ class NotificationSettings extends Equatable {
         iconColorBlue: iconColor?.b,
         keepNotificationAfterAlarmEnds: keepNotificationAfterAlarmEnds,
         androidStopAlarmOnDismiss: androidStopAlarmOnDismiss,
+        androidLocalOnly: androidLocalOnly,
       );
 
   /// Creates a copy of this notification settings but with the given fields
@@ -146,6 +155,7 @@ class NotificationSettings extends Equatable {
     Color? iconColor,
     bool? keepNotificationAfterAlarmEnds,
     bool? androidStopAlarmOnDismiss,
+    bool? androidLocalOnly,
   }) {
     return NotificationSettings(
       title: title ?? this.title,
@@ -162,6 +172,7 @@ class NotificationSettings extends Equatable {
           keepNotificationAfterAlarmEnds ?? this.keepNotificationAfterAlarmEnds,
       androidStopAlarmOnDismiss:
           androidStopAlarmOnDismiss ?? this.androidStopAlarmOnDismiss,
+      androidLocalOnly: androidLocalOnly ?? this.androidLocalOnly,
     );
   }
 
@@ -175,6 +186,7 @@ class NotificationSettings extends Equatable {
         iconColor,
         keepNotificationAfterAlarmEnds,
         androidStopAlarmOnDismiss,
+        androidLocalOnly,
       ];
 }
 

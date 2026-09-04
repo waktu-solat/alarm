@@ -200,6 +200,14 @@ struct AlarmSettingsWire: Hashable {
   /// below a few seconds, which survives neither process death nor
   /// cancellation. Android only.
   var androidSnoozeDurationMillis: Int64? = nil
+  /// Whether the alarm sounds even when the device ringer is silent or on
+  /// vibrate.
+  ///
+  /// Alarm audio plays on `STREAM_ALARM`, which Android keeps independent of
+  /// ringer mode, so by default a muted phone still rings. When false the
+  /// plugin honours the ringer instead: silent means no sound and no
+  /// vibration, vibrate means vibration only. Android only.
+  var androidOverrideDeviceSilentMode: Bool
 
 
   // swift-format-ignore: AlwaysUseLowerCamelCase
@@ -219,6 +227,7 @@ struct AlarmSettingsWire: Hashable {
     let androidStopAlarmOnTermination = pigeonVar_list[12] as! Bool
     let preferConnectedAudioDevice = pigeonVar_list[13] as! Bool
     let androidSnoozeDurationMillis: Int64? = nilOrValue(pigeonVar_list[14])
+    let androidOverrideDeviceSilentMode = pigeonVar_list[15] as! Bool
 
     return AlarmSettingsWire(
       id: id,
@@ -235,7 +244,8 @@ struct AlarmSettingsWire: Hashable {
       iOSBackgroundAudio: iOSBackgroundAudio,
       androidStopAlarmOnTermination: androidStopAlarmOnTermination,
       preferConnectedAudioDevice: preferConnectedAudioDevice,
-      androidSnoozeDurationMillis: androidSnoozeDurationMillis
+      androidSnoozeDurationMillis: androidSnoozeDurationMillis,
+      androidOverrideDeviceSilentMode: androidOverrideDeviceSilentMode
     )
   }
   func toList() -> [Any?] {
@@ -255,6 +265,7 @@ struct AlarmSettingsWire: Hashable {
       androidStopAlarmOnTermination,
       preferConnectedAudioDevice,
       androidSnoozeDurationMillis,
+      androidOverrideDeviceSilentMode,
     ]
   }
   static func == (lhs: AlarmSettingsWire, rhs: AlarmSettingsWire) -> Bool {
@@ -353,6 +364,12 @@ struct NotificationSettingsWire: Hashable {
   var androidSnoozeButton: String? = nil
   /// Whether swiping the notification away also stops the alarm. Android only.
   var androidStopAlarmOnDismiss: Bool
+  /// Whether the notification is withheld from paired wearables
+  /// (`Notification.FLAG_LOCAL_ONLY`).
+  ///
+  /// Set when a companion watch app is giving its own alert, so the wrist is
+  /// not buzzed twice for one prayer. Android only.
+  var androidLocalOnly: Bool
 
 
   // swift-format-ignore: AlwaysUseLowerCamelCase
@@ -368,6 +385,7 @@ struct NotificationSettingsWire: Hashable {
     let keepNotificationAfterAlarmEnds = pigeonVar_list[8] as! Bool
     let androidSnoozeButton: String? = nilOrValue(pigeonVar_list[9])
     let androidStopAlarmOnDismiss = pigeonVar_list[10] as! Bool
+    let androidLocalOnly = pigeonVar_list[11] as! Bool
 
     return NotificationSettingsWire(
       title: title,
@@ -380,7 +398,8 @@ struct NotificationSettingsWire: Hashable {
       iconColorBlue: iconColorBlue,
       keepNotificationAfterAlarmEnds: keepNotificationAfterAlarmEnds,
       androidSnoozeButton: androidSnoozeButton,
-      androidStopAlarmOnDismiss: androidStopAlarmOnDismiss
+      androidStopAlarmOnDismiss: androidStopAlarmOnDismiss,
+      androidLocalOnly: androidLocalOnly
     )
   }
   func toList() -> [Any?] {
@@ -396,6 +415,7 @@ struct NotificationSettingsWire: Hashable {
       keepNotificationAfterAlarmEnds,
       androidSnoozeButton,
       androidStopAlarmOnDismiss,
+      androidLocalOnly,
     ]
   }
   static func == (lhs: NotificationSettingsWire, rhs: NotificationSettingsWire) -> Bool {

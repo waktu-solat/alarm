@@ -27,6 +27,8 @@ NotificationSettings _$NotificationSettingsFromJson(
               'keepNotificationAfterAlarmEnds', (v) => v as bool? ?? false),
           androidStopAlarmOnDismiss: $checkedConvert(
               'androidStopAlarmOnDismiss', (v) => v as bool? ?? true),
+          androidLocalOnly:
+              $checkedConvert('androidLocalOnly', (v) => v as bool? ?? false),
         );
         return val;
       },
@@ -46,4 +48,5 @@ Map<String, dynamic> _$NotificationSettingsToJson(
         'iconColor': value,
       'keepNotificationAfterAlarmEnds': instance.keepNotificationAfterAlarmEnds,
       'androidStopAlarmOnDismiss': instance.androidStopAlarmOnDismiss,
+      'androidLocalOnly': instance.androidLocalOnly,
     };

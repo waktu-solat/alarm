@@ -28,6 +28,7 @@ class AlarmSettings extends Equatable {
     this.preferConnectedAudioDevice = false,
     this.payload,
     this.androidSnoozeDuration,
+    this.androidOverrideDeviceSilentMode = false,
   });
 
   /// Constructs an `AlarmSettings` instance from the given JSON data.
@@ -232,6 +233,17 @@ class AlarmSettings extends Equatable {
   /// delays, and the fallback survives neither process death nor cancellation.
   final Duration? androidSnoozeDuration;
 
+  /// **Android only.** Whether the alarm sounds even when the device ringer is
+  /// silent or on vibrate.
+  ///
+  /// Alarm audio plays on `STREAM_ALARM`, which Android deliberately keeps
+  /// independent of ringer mode, so by default a muted phone still rings.
+  /// Leaving this false makes the plugin honour the ringer instead: silent
+  /// means no sound and no vibration, vibrate means vibration only.
+  ///
+  /// Defaults to false so a muted device stays muted.
+  final bool androidOverrideDeviceSilentMode;
+
   /// Converts the `AlarmSettings` instance to a JSON object.
   Map<String, dynamic> toJson() => _$AlarmSettingsToJson(this);
 
@@ -252,6 +264,7 @@ class AlarmSettings extends Equatable {
         androidStopAlarmOnTermination: androidStopAlarmOnTermination,
         preferConnectedAudioDevice: preferConnectedAudioDevice,
         androidSnoozeDurationMillis: androidSnoozeDuration?.inMilliseconds,
+        androidOverrideDeviceSilentMode: androidOverrideDeviceSilentMode,
       );
 
   /// Creates a copy of `AlarmSettings` but with the given fields replaced with
@@ -287,6 +300,7 @@ class AlarmSettings extends Equatable {
     bool? preferConnectedAudioDevice,
     String? Function()? payload,
     Duration? Function()? androidSnoozeDuration,
+    bool? androidOverrideDeviceSilentMode,
   }) {
     return AlarmSettings(
       id: id ?? this.id,
@@ -316,6 +330,8 @@ class AlarmSettings extends Equatable {
       androidSnoozeDuration: androidSnoozeDuration != null
           ? androidSnoozeDuration()
           : this.androidSnoozeDuration,
+      androidOverrideDeviceSilentMode: androidOverrideDeviceSilentMode ??
+          this.androidOverrideDeviceSilentMode,
     );
   }
 
@@ -337,5 +353,6 @@ class AlarmSettings extends Equatable {
         preferConnectedAudioDevice,
         payload,
         androidSnoozeDuration,
+        androidOverrideDeviceSilentMode,
       ];
 }

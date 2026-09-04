@@ -16,6 +16,11 @@ data class NotificationSettings(
     // Defaults to true so alarms persisted before this flag existed, which
     // decode without the key, keep stopping on a dismiss as they did.
     val androidStopAlarmOnDismiss: Boolean = true,
+    // Appended last, and defaulted, so alarms persisted before this flag
+    // existed still decode. fromWire passes arguments positionally, so a new
+    // field inserted anywhere but the end would silently shift every field
+    // after it.
+    val androidLocalOnly: Boolean = false,
 ) {
     companion object {
         fun fromWire(e: NotificationSettingsWire): NotificationSettings {
@@ -38,6 +43,7 @@ data class NotificationSettings(
                 e.keepNotificationAfterAlarmEnds,
                 e.androidSnoozeButton,
                 e.androidStopAlarmOnDismiss,
+                e.androidLocalOnly,
             )
         }
     }

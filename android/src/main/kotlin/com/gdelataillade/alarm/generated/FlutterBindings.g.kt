@@ -176,7 +176,17 @@ data class AlarmSettingsWire (
    * below a few seconds, which survives neither process death nor
    * cancellation. Android only.
    */
-  val androidSnoozeDurationMillis: Long? = null
+  val androidSnoozeDurationMillis: Long? = null,
+  /**
+   * Whether the alarm sounds even when the device ringer is silent or on
+   * vibrate.
+   *
+   * Alarm audio plays on `STREAM_ALARM`, which Android keeps independent of
+   * ringer mode, so by default a muted phone still rings. When false the
+   * plugin honours the ringer instead: silent means no sound and no
+   * vibration, vibrate means vibration only. Android only.
+   */
+  val androidOverrideDeviceSilentMode: Boolean
 )
  {
   companion object {
@@ -196,7 +206,8 @@ data class AlarmSettingsWire (
       val androidStopAlarmOnTermination = pigeonVar_list[12] as Boolean
       val preferConnectedAudioDevice = pigeonVar_list[13] as Boolean
       val androidSnoozeDurationMillis = pigeonVar_list[14] as Long?
-      return AlarmSettingsWire(id, millisecondsSinceEpoch, assetAudioPath, volumeSettings, notificationSettings, loopAudio, vibrate, warningNotificationOnKill, androidFullScreenIntent, allowAlarmOverlap, allowSameSecondScheduling, iOSBackgroundAudio, androidStopAlarmOnTermination, preferConnectedAudioDevice, androidSnoozeDurationMillis)
+      val androidOverrideDeviceSilentMode = pigeonVar_list[15] as Boolean
+      return AlarmSettingsWire(id, millisecondsSinceEpoch, assetAudioPath, volumeSettings, notificationSettings, loopAudio, vibrate, warningNotificationOnKill, androidFullScreenIntent, allowAlarmOverlap, allowSameSecondScheduling, iOSBackgroundAudio, androidStopAlarmOnTermination, preferConnectedAudioDevice, androidSnoozeDurationMillis, androidOverrideDeviceSilentMode)
     }
   }
   fun toList(): List<Any?> {
@@ -216,6 +227,7 @@ data class AlarmSettingsWire (
       androidStopAlarmOnTermination,
       preferConnectedAudioDevice,
       androidSnoozeDurationMillis,
+      androidOverrideDeviceSilentMode,
     )
   }
   override fun equals(other: Any?): Boolean {
@@ -321,7 +333,15 @@ data class NotificationSettingsWire (
    */
   val androidSnoozeButton: String? = null,
   /** Whether swiping the notification away also stops the alarm. Android only. */
-  val androidStopAlarmOnDismiss: Boolean
+  val androidStopAlarmOnDismiss: Boolean,
+  /**
+   * Whether the notification is withheld from paired wearables
+   * (`Notification.FLAG_LOCAL_ONLY`).
+   *
+   * Set when a companion watch app is giving its own alert, so the wrist is
+   * not buzzed twice for one prayer. Android only.
+   */
+  val androidLocalOnly: Boolean
 )
  {
   companion object {
@@ -337,7 +357,8 @@ data class NotificationSettingsWire (
       val keepNotificationAfterAlarmEnds = pigeonVar_list[8] as Boolean
       val androidSnoozeButton = pigeonVar_list[9] as String?
       val androidStopAlarmOnDismiss = pigeonVar_list[10] as Boolean
-      return NotificationSettingsWire(title, body, stopButton, icon, iconColorAlpha, iconColorRed, iconColorGreen, iconColorBlue, keepNotificationAfterAlarmEnds, androidSnoozeButton, androidStopAlarmOnDismiss)
+      val androidLocalOnly = pigeonVar_list[11] as Boolean
+      return NotificationSettingsWire(title, body, stopButton, icon, iconColorAlpha, iconColorRed, iconColorGreen, iconColorBlue, keepNotificationAfterAlarmEnds, androidSnoozeButton, androidStopAlarmOnDismiss, androidLocalOnly)
     }
   }
   fun toList(): List<Any?> {
@@ -353,6 +374,7 @@ data class NotificationSettingsWire (
       keepNotificationAfterAlarmEnds,
       androidSnoozeButton,
       androidStopAlarmOnDismiss,
+      androidLocalOnly,
     )
   }
   override fun equals(other: Any?): Boolean {

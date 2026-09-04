@@ -114,6 +114,9 @@ class NotificationHandler(private val context: Context) {
             .setContentIntent(pendingIntent)
             .setSound(null)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            // Withheld from paired wearables when a companion watch app is
+            // raising its own alert, so one alarm does not buzz the wrist twice.
+            .setLocalOnly(notificationSettings.androidLocalOnly)
 
         // setOngoing(true) above no longer pins the notification: since Android 13 a
         // foreground service notification can be swiped away while the device is

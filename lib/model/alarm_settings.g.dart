@@ -43,6 +43,8 @@ AlarmSettings _$AlarmSettingsFromJson(Map<String, dynamic> json) =>
               (v) => v == null
                   ? null
                   : Duration(microseconds: (v as num).toInt())),
+          androidOverrideDeviceSilentMode: $checkedConvert(
+              'androidOverrideDeviceSilentMode', (v) => v as bool? ?? false),
         );
         return val;
       },
@@ -67,4 +69,6 @@ Map<String, dynamic> _$AlarmSettingsToJson(AlarmSettings instance) =>
       if (instance.payload case final value?) 'payload': value,
       if (instance.androidSnoozeDuration?.inMicroseconds case final value?)
         'androidSnoozeDuration': value,
+      'androidOverrideDeviceSilentMode':
+          instance.androidOverrideDeviceSilentMode,
     };

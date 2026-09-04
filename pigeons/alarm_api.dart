@@ -32,6 +32,7 @@ class AlarmSettingsWire {
     required this.androidStopAlarmOnTermination,
     required this.preferConnectedAudioDevice,
     required this.androidSnoozeDurationMillis,
+    required this.androidOverrideDeviceSilentMode,
   });
 
   final int id;
@@ -56,6 +57,15 @@ class AlarmSettingsWire {
   /// below a few seconds, which survives neither process death nor
   /// cancellation. Android only.
   final int? androidSnoozeDurationMillis;
+
+  /// Whether the alarm sounds even when the device ringer is silent or on
+  /// vibrate.
+  ///
+  /// Alarm audio plays on `STREAM_ALARM`, which Android keeps independent of
+  /// ringer mode, so by default a muted phone still rings. When false the
+  /// plugin honours the ringer instead: silent means no sound and no
+  /// vibration, vibrate means vibration only. Android only.
+  final bool androidOverrideDeviceSilentMode;
 }
 
 class VolumeSettingsWire {
@@ -97,6 +107,7 @@ class NotificationSettingsWire {
     required this.keepNotificationAfterAlarmEnds,
     required this.androidSnoozeButton,
     required this.androidStopAlarmOnDismiss,
+    required this.androidLocalOnly,
   });
 
   final String title;
@@ -118,6 +129,13 @@ class NotificationSettingsWire {
 
   /// Whether swiping the notification away also stops the alarm. Android only.
   final bool androidStopAlarmOnDismiss;
+
+  /// Whether the notification is withheld from paired wearables
+  /// (`Notification.FLAG_LOCAL_ONLY`).
+  ///
+  /// Set when a companion watch app is giving its own alert, so the wrist is
+  /// not buzzed twice for one prayer. Android only.
+  final bool androidLocalOnly;
 }
 
 /// Errors that can occur when interacting with the Alarm API.

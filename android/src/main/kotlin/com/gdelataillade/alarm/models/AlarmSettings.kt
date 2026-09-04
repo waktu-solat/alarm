@@ -32,6 +32,9 @@ data class AlarmSettings(
     val preferConnectedAudioDevice: Boolean = false, // Defaults to false for backward compatibility
     // Null, or below SNOOZE_MINIMUM_MILLIS, offers no snooze.
     val androidSnoozeDurationMillis: Long? = null,
+    // Defaults to false so a muted device stays muted, and so alarms persisted
+    // before this flag existed keep decoding.
+    val androidOverrideDeviceSilentMode: Boolean = false,
 ) {
     /** Whether this alarm can be deferred rather than only stopped. */
     val canSnooze: Boolean
@@ -64,6 +67,7 @@ data class AlarmSettings(
                 e.androidStopAlarmOnTermination,
                 e.preferConnectedAudioDevice,
                 e.androidSnoozeDurationMillis,
+                e.androidOverrideDeviceSilentMode,
             )
         }
 
