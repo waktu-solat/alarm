@@ -172,6 +172,9 @@ class AlarmService : Service() {
     }
 
     private fun ringAlarm(id: Int, alarmSettings: AlarmSettings) {
+        // Read before this ring takes the foreground slot: if it holds an
+        // alarm whose audio already finished, that alarm is retired below.
+        val previousForegroundId = currentForegroundId
         alarmId = id
 
         // Build the notification
@@ -263,6 +266,11 @@ class AlarmService : Service() {
                     vibrationService?.stopVibrating()
                     volumeService?.restorePreviousVolume(showSystemUI)
                     volumeService?.abandonAudioFocus()
+                    // The alarm has stopped sounding even though nobody
+                    // stopped it. Without this it kept counting as ringing
+                    // until dismissed, and onStartCommand threw away (and
+                    // unsaved) every alarm that fired in the meantime.
+                    ringingAlarmIds = audioService?.getPlayingMediaPlayersIds() ?: listOf()
                 }
             }
 
@@ -279,6 +287,14 @@ class AlarmService : Service() {
 
         // Update the list of ringing alarms
         ringingAlarmIds = audioService?.getPlayingMediaPlayersIds() ?: listOf()
+
+        if (previousForegroundId != null &&
+            previousForegroundId != id &&
+            previousForegroundId != PLACEHOLDER_NOTIFICATION_ID &&
+            !ringingAlarmIds.contains(previousForegroundId)
+        ) {
+            retireFinishedAlarm(previousForegroundId)
+        }
 
         // Start vibration if enabled
         if (allowVibration) {
@@ -598,6 +614,25 @@ class AlarmService : Service() {
      */
     fun silenceForSnooze(alarmId: Int) {
         stopAlarm(alarmId)
+    }
+
+    /**
+     * Clears an alarm that finished sounding but was never dismissed, once a
+     * newer ring has taken the foreground slot from it.
+     *
+     * Deliberately not [unsaveAlarm]: that goes through [stopAlarm], whose
+     * "nothing else is playing" cleanup would stop the foreground service
+     * and remove the new ring's notification. The old notification is no
+     * longer the foreground one, so it is cancelled explicitly; left alone it
+     * would linger with a stop button that no longer maps to a ringing alarm.
+     */
+    private fun retireFinishedAlarm(id: Int) {
+        audioService?.stopAudio(id)
+        alarmStorage?.unsaveAlarm(id)
+        NotificationHandler(this).cancelNotification(id)
+        AlarmPlugin.alarmTriggerApi?.alarmStopped(id.toLong()) {
+            Log.d(TAG, "Finished alarm $id retired by a newer ring: ${it.isSuccess}")
+        }
     }
 
     private fun unsaveAlarm(id: Int) {
