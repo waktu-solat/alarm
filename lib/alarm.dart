@@ -184,11 +184,17 @@ class Alarm {
   /// timer would not fire in a background isolate that gets torn down, and it
   /// could stop an alarm at the moment the user is acting on it.
   ///
+  /// Three minutes, not seconds: OxygenOS rewrites exact alarms into a window
+  /// and delivered them 41 s and 85 s late on a battery-exempt OnePlus
+  /// (Android 12, measured 2026-09-26). With a 30 s window, opening the app in
+  /// that gap — often to check whether it is prayer time yet — stopped an
+  /// alarm that was still on its way.
+  ///
   /// Does not cover an alarm delayed past this window by the inexact fallback
   /// `AlarmScheduler` uses when the exact alarm permission is revoked. Telling
   /// "armed and still pending" from "never armed" needs durable native state,
   /// which the platform does not expose today.
-  static const _ringStartGrace = Duration(seconds: 30);
+  static const _ringStartGrace = Duration(minutes: 3);
 
   static Future<void> _checkAlarm() async {
     final handled = await _applyPendingEvents();

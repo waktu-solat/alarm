@@ -72,9 +72,21 @@ void main() {
       );
     });
 
+    test('an alarm an OEM delivered late is still left alone', () async {
+      // OxygenOS delivered exact alarms up to 85 s late on a OnePlus.
+      await AlarmStorage.saveAlarm(
+        buildAlarm(42, DateTime.now().subtract(const Duration(seconds: 85))),
+      );
+
+      await Alarm.init();
+
+      expect(host.calls, isNot(contains('stopAlarm')));
+      expect(await Alarm.getAlarm(42), isNotNull);
+    });
+
     test('an alarm long past due is still stopped', () async {
       await AlarmStorage.saveAlarm(
-        buildAlarm(42, DateTime.now().subtract(const Duration(minutes: 2))),
+        buildAlarm(42, DateTime.now().subtract(const Duration(minutes: 5))),
       );
 
       await Alarm.init();
