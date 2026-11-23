@@ -22,6 +22,8 @@ class NotificationSettings extends Equatable {
     this.keepNotificationAfterAlarmEnds = false,
     this.androidStopAlarmOnDismiss = true,
     this.androidLocalOnly = false,
+    this.androidActionButton,
+    this.androidActionPayload,
   });
 
   /// Converts the JSON object to a `NotificationSettings` instance.
@@ -125,6 +127,18 @@ class NotificationSettings extends Equatable {
   /// not buzz the wrist twice. Android only.
   final bool androidLocalOnly;
 
+  /// Label for an app-defined action button. Null omits it.
+  ///
+  /// Tapping it stops the alarm, like [stopButton], and first sends the
+  /// broadcast `com.gdelataillade.alarm.ACTION_BUTTON_PRESSED` to the app's
+  /// own package with the alarm `id` and [androidActionPayload]. It arrives
+  /// even when no Flutter engine is running, so register a native
+  /// `BroadcastReceiver` for it. Android only.
+  final String? androidActionButton;
+
+  /// Opaque string handed back with the [androidActionButton] broadcast.
+  final String? androidActionPayload;
+
   /// Converts the `NotificationSettings` instance to a JSON object.
   Map<String, dynamic> toJson() => _$NotificationSettingsToJson(this);
 
@@ -142,6 +156,8 @@ class NotificationSettings extends Equatable {
         keepNotificationAfterAlarmEnds: keepNotificationAfterAlarmEnds,
         androidStopAlarmOnDismiss: androidStopAlarmOnDismiss,
         androidLocalOnly: androidLocalOnly,
+        androidActionButton: androidActionButton,
+        androidActionPayload: androidActionPayload,
       );
 
   /// Creates a copy of this notification settings but with the given fields
@@ -156,6 +172,8 @@ class NotificationSettings extends Equatable {
     bool? keepNotificationAfterAlarmEnds,
     bool? androidStopAlarmOnDismiss,
     bool? androidLocalOnly,
+    String? Function()? androidActionButton,
+    String? Function()? androidActionPayload,
   }) {
     return NotificationSettings(
       title: title ?? this.title,
@@ -173,6 +191,12 @@ class NotificationSettings extends Equatable {
       androidStopAlarmOnDismiss:
           androidStopAlarmOnDismiss ?? this.androidStopAlarmOnDismiss,
       androidLocalOnly: androidLocalOnly ?? this.androidLocalOnly,
+      androidActionButton: androidActionButton != null
+          ? androidActionButton()
+          : this.androidActionButton,
+      androidActionPayload: androidActionPayload != null
+          ? androidActionPayload()
+          : this.androidActionPayload,
     );
   }
 
@@ -187,6 +211,8 @@ class NotificationSettings extends Equatable {
         keepNotificationAfterAlarmEnds,
         androidStopAlarmOnDismiss,
         androidLocalOnly,
+        androidActionButton,
+        androidActionPayload,
       ];
 }
 

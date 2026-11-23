@@ -18,30 +18,38 @@ class AlarmReceiver : BroadcastReceiver() {
         const val ACTION_ALARM_STOP = "com.gdelataillade.alarm.ACTION_STOP"
         const val ACTION_ALARM_SNOOZE = "com.gdelataillade.alarm.ACTION_SNOOZE"
         const val ACTION_ALARM_RESTORE = "com.gdelataillade.alarm.ACTION_RESTORE"
+        const val ACTION_ALARM_APP_ACTION = "com.gdelataillade.alarm.ACTION_APP_ACTION"
+
+        /** Sent to the host app's own package when its action button is tapped. */
+        const val ACTION_BUTTON_PRESSED = "com.gdelataillade.alarm.ACTION_BUTTON_PRESSED"
     }
 
     override fun onReceive(context: Context, intent: Intent) {
+        // The app-defined action: tell the app first, then stop like the stop
+        // button. Told first so a failure to stop never loses what the user
+        // asked for; the broadcast goes to this package only.
+        if (intent.action == ACTION_ALARM_APP_ACTION) {
+            val id = intent.getIntExtra("id", 0)
+            Log.d(TAG, "Received app action from notification, id: $id")
+            try {
+                context.sendBroadcast(
+                    Intent(ACTION_BUTTON_PRESSED)
+                        .setPackage(context.packageName)
+                        .putExtra("id", id)
+                        .putExtra("payload", intent.getStringExtra("payload"))
+                )
+            } catch (e: Exception) {
+                Log.e(TAG, "Could not deliver app action for $id", e)
+            }
+            stopFromNotification(context, id)
+            return
+        }
+
         // Stop alarm from the notification stop button or notification dismissal.
         if (intent.action == ACTION_ALARM_STOP) {
             val id = intent.getIntExtra("id", 0)
             Log.d(TAG, "Received stop alarm command from notification, id: $id")
-
-            val service = AlarmService.instance
-            if (service != null) {
-                service.handleStopAlarmCommand(id)
-            } else if (id != 0) {
-                // The service is not running anymore (e.g. it was killed while
-                // the notification lingered). Clean up directly instead of
-                // starting the foreground service, which would crash because
-                // a stop command never calls startForeground().
-                AlarmStorage(context).unsaveAlarm(id)
-                // The ongoing notification is not owned by a foreground service
-                // here, so it must be cancelled explicitly or it lingers.
-                NotificationHandler(context).cancelNotification(id)
-                AlarmPlugin.alarmTriggerApi?.alarmStopped(id.toLong()) {
-                    Log.d(TAG, "Alarm stopped notification for $id processed by Flutter: ${it.isSuccess}")
-                }
-            }
+            stopFromNotification(context, id)
             return
         }
 
@@ -88,6 +96,25 @@ class AlarmReceiver : BroadcastReceiver() {
             context.startForegroundService(serviceIntent)
         } else {
             context.startService(serviceIntent)
+        }
+    }
+
+    private fun stopFromNotification(context: Context, id: Int) {
+        val service = AlarmService.instance
+        if (service != null) {
+            service.handleStopAlarmCommand(id)
+        } else if (id != 0) {
+            // The service is not running anymore (e.g. it was killed while
+            // the notification lingered). Clean up directly instead of
+            // starting the foreground service, which would crash because
+            // a stop command never calls startForeground().
+            AlarmStorage(context).unsaveAlarm(id)
+            // The ongoing notification is not owned by a foreground service
+            // here, so it must be cancelled explicitly or it lingers.
+            NotificationHandler(context).cancelNotification(id)
+            AlarmPlugin.alarmTriggerApi?.alarmStopped(id.toLong()) {
+                Log.d(TAG, "Alarm stopped notification for $id processed by Flutter: ${it.isSuccess}")
+            }
         }
     }
 }

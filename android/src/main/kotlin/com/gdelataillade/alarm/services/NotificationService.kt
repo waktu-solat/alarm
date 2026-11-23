@@ -160,6 +160,25 @@ class NotificationHandler(private val context: Context) {
                 notificationBuilder.addAction(0, it.androidSnoozeButton, snoozePendingIntent)
             }
 
+            if (it.androidActionButton != null) {
+                // Request code is the alarm id like stop/snooze; PendingIntent
+                // identity includes the action, so they do not collide. The
+                // payload rides in the extras, which FLAG_UPDATE_CURRENT keeps
+                // current for this alarm.
+                val actionIntent = Intent(context, AlarmReceiver::class.java).apply {
+                    action = AlarmReceiver.ACTION_ALARM_APP_ACTION
+                    putExtra("id", alarmId)
+                    putExtra("payload", it.androidActionPayload)
+                }
+                val actionPendingIntent = PendingIntent.getBroadcast(
+                    context,
+                    alarmId,
+                    actionIntent,
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                )
+                notificationBuilder.addAction(0, it.androidActionButton, actionPendingIntent)
+            }
+
             if (it.iconColor != null) {
                 notificationBuilder.setColor(it.iconColor)
             }

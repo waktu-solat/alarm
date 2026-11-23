@@ -341,7 +341,19 @@ data class NotificationSettingsWire (
    * Set when a companion watch app is giving its own alert, so the wrist is
    * not buzzed twice for one prayer. Android only.
    */
-  val androidLocalOnly: Boolean
+  val androidLocalOnly: Boolean,
+  /**
+   * Label for an app-defined action. Null omits the action.
+   *
+   * Tapping it stops the alarm, like the stop button, and first sends the
+   * broadcast `com.gdelataillade.alarm.ACTION_BUTTON_PRESSED` to the host
+   * app's own package with extras `id` and `payload`
+   * ([androidActionPayload]). Delivered even when no Flutter engine is
+   * running, so the app handles it natively. Android only.
+   */
+  val androidActionButton: String? = null,
+  /** Opaque string handed back with the [androidActionButton] broadcast. */
+  val androidActionPayload: String? = null
 )
  {
   companion object {
@@ -358,7 +370,9 @@ data class NotificationSettingsWire (
       val androidSnoozeButton = pigeonVar_list[9] as String?
       val androidStopAlarmOnDismiss = pigeonVar_list[10] as Boolean
       val androidLocalOnly = pigeonVar_list[11] as Boolean
-      return NotificationSettingsWire(title, body, stopButton, icon, iconColorAlpha, iconColorRed, iconColorGreen, iconColorBlue, keepNotificationAfterAlarmEnds, androidSnoozeButton, androidStopAlarmOnDismiss, androidLocalOnly)
+      val androidActionButton = pigeonVar_list[12] as String?
+      val androidActionPayload = pigeonVar_list[13] as String?
+      return NotificationSettingsWire(title, body, stopButton, icon, iconColorAlpha, iconColorRed, iconColorGreen, iconColorBlue, keepNotificationAfterAlarmEnds, androidSnoozeButton, androidStopAlarmOnDismiss, androidLocalOnly, androidActionButton, androidActionPayload)
     }
   }
   fun toList(): List<Any?> {
@@ -375,6 +389,8 @@ data class NotificationSettingsWire (
       androidSnoozeButton,
       androidStopAlarmOnDismiss,
       androidLocalOnly,
+      androidActionButton,
+      androidActionPayload,
     )
   }
   override fun equals(other: Any?): Boolean {

@@ -21,6 +21,10 @@ data class NotificationSettings(
     // field inserted anywhere but the end would silently shift every field
     // after it.
     val androidLocalOnly: Boolean = false,
+    // App-defined action (label + opaque payload). Appended last and
+    // defaulted for the same reasons as androidLocalOnly.
+    val androidActionButton: String? = null,
+    val androidActionPayload: String? = null,
 ) {
     companion object {
         fun fromWire(e: NotificationSettingsWire): NotificationSettings {
@@ -44,6 +48,8 @@ data class NotificationSettings(
                 e.androidSnoozeButton,
                 e.androidStopAlarmOnDismiss,
                 e.androidLocalOnly,
+                e.androidActionButton,
+                e.androidActionPayload,
             )
         }
     }

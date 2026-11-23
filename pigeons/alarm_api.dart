@@ -108,6 +108,8 @@ class NotificationSettingsWire {
     required this.androidSnoozeButton,
     required this.androidStopAlarmOnDismiss,
     required this.androidLocalOnly,
+    required this.androidActionButton,
+    required this.androidActionPayload,
   });
 
   final String title;
@@ -136,6 +138,18 @@ class NotificationSettingsWire {
   /// Set when a companion watch app is giving its own alert, so the wrist is
   /// not buzzed twice for one prayer. Android only.
   final bool androidLocalOnly;
+
+  /// Label for an app-defined action. Null omits the action.
+  ///
+  /// Tapping it stops the alarm, like the stop button, and first sends the
+  /// broadcast `com.gdelataillade.alarm.ACTION_BUTTON_PRESSED` to the host
+  /// app's own package with extras `id` and `payload`
+  /// ([androidActionPayload]). Delivered even when no Flutter engine is
+  /// running, so the app handles it natively. Android only.
+  final String? androidActionButton;
+
+  /// Opaque string handed back with the [androidActionButton] broadcast.
+  final String? androidActionPayload;
 }
 
 /// Errors that can occur when interacting with the Alarm API.

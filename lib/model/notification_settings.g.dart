@@ -29,6 +29,10 @@ NotificationSettings _$NotificationSettingsFromJson(
               'androidStopAlarmOnDismiss', (v) => v as bool? ?? true),
           androidLocalOnly:
               $checkedConvert('androidLocalOnly', (v) => v as bool? ?? false),
+          androidActionButton:
+              $checkedConvert('androidActionButton', (v) => v as String?),
+          androidActionPayload:
+              $checkedConvert('androidActionPayload', (v) => v as String?),
         );
         return val;
       },
@@ -49,4 +53,6 @@ Map<String, dynamic> _$NotificationSettingsToJson(
       'keepNotificationAfterAlarmEnds': instance.keepNotificationAfterAlarmEnds,
       'androidStopAlarmOnDismiss': instance.androidStopAlarmOnDismiss,
       'androidLocalOnly': instance.androidLocalOnly,
+      'androidActionButton': instance.androidActionButton,
+      'androidActionPayload': instance.androidActionPayload,
     };

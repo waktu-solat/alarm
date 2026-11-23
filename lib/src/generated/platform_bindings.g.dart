@@ -343,6 +343,8 @@ class NotificationSettingsWire {
     this.androidSnoozeButton,
     required this.androidStopAlarmOnDismiss,
     required this.androidLocalOnly,
+    this.androidActionButton,
+    this.androidActionPayload,
   });
 
   String title;
@@ -380,6 +382,18 @@ class NotificationSettingsWire {
   /// not buzzed twice for one prayer. Android only.
   bool androidLocalOnly;
 
+  /// Label for an app-defined action. Null omits the action.
+  ///
+  /// Tapping it stops the alarm, like the stop button, and first sends the
+  /// broadcast `com.gdelataillade.alarm.ACTION_BUTTON_PRESSED` to the host
+  /// app's own package with extras `id` and `payload`
+  /// ([androidActionPayload]). Delivered even when no Flutter engine is
+  /// running, so the app handles it natively. Android only.
+  String? androidActionButton;
+
+  /// Opaque string handed back with the [androidActionButton] broadcast.
+  String? androidActionPayload;
+
   List<Object?> _toList() {
     return <Object?>[
       title,
@@ -394,6 +408,8 @@ class NotificationSettingsWire {
       androidSnoozeButton,
       androidStopAlarmOnDismiss,
       androidLocalOnly,
+      androidActionButton,
+      androidActionPayload,
     ];
   }
 
@@ -416,6 +432,8 @@ class NotificationSettingsWire {
       androidSnoozeButton: result[9] as String?,
       androidStopAlarmOnDismiss: result[10]! as bool,
       androidLocalOnly: result[11]! as bool,
+      androidActionButton: result[12] as String?,
+      androidActionPayload: result[13] as String?,
     );
   }
 

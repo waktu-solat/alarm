@@ -370,6 +370,16 @@ struct NotificationSettingsWire: Hashable {
   /// Set when a companion watch app is giving its own alert, so the wrist is
   /// not buzzed twice for one prayer. Android only.
   var androidLocalOnly: Bool
+  /// Label for an app-defined action. Null omits the action.
+  ///
+  /// Tapping it stops the alarm, like the stop button, and first sends the
+  /// broadcast `com.gdelataillade.alarm.ACTION_BUTTON_PRESSED` to the host
+  /// app's own package with extras `id` and `payload`
+  /// ([androidActionPayload]). Delivered even when no Flutter engine is
+  /// running, so the app handles it natively. Android only.
+  var androidActionButton: String? = nil
+  /// Opaque string handed back with the [androidActionButton] broadcast.
+  var androidActionPayload: String? = nil
 
 
   // swift-format-ignore: AlwaysUseLowerCamelCase
@@ -386,6 +396,8 @@ struct NotificationSettingsWire: Hashable {
     let androidSnoozeButton: String? = nilOrValue(pigeonVar_list[9])
     let androidStopAlarmOnDismiss = pigeonVar_list[10] as! Bool
     let androidLocalOnly = pigeonVar_list[11] as! Bool
+    let androidActionButton: String? = nilOrValue(pigeonVar_list[12])
+    let androidActionPayload: String? = nilOrValue(pigeonVar_list[13])
 
     return NotificationSettingsWire(
       title: title,
@@ -399,7 +411,9 @@ struct NotificationSettingsWire: Hashable {
       keepNotificationAfterAlarmEnds: keepNotificationAfterAlarmEnds,
       androidSnoozeButton: androidSnoozeButton,
       androidStopAlarmOnDismiss: androidStopAlarmOnDismiss,
-      androidLocalOnly: androidLocalOnly
+      androidLocalOnly: androidLocalOnly,
+      androidActionButton: androidActionButton,
+      androidActionPayload: androidActionPayload
     )
   }
   func toList() -> [Any?] {
@@ -416,6 +430,8 @@ struct NotificationSettingsWire: Hashable {
       androidSnoozeButton,
       androidStopAlarmOnDismiss,
       androidLocalOnly,
+      androidActionButton,
+      androidActionPayload,
     ]
   }
   static func == (lhs: NotificationSettingsWire, rhs: NotificationSettingsWire) -> Bool {
