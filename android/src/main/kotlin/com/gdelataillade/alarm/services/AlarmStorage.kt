@@ -198,8 +198,12 @@ class AlarmStorage(context: Context) {
                     AlarmEventVerb.MOVED -> MOVED_MARKER_TTL_MILLIS
                     AlarmEventVerb.DROPPED -> DROPPED_MARKER_TTL_MILLIS
                 }
-                if (now - event.atMillis > ttl) {
-                    Log.w(TAG, "Dropping ${event.verb} marker for ${event.alarmId}, stale since ${event.atMillis}.")
+                // The later of the two (upstream 4a08937): a STALE_AT_BOOT drop
+                // describes an alarm whose own time may be days past, so ageing
+                // it by that would expire the marker before the app ever ran.
+                val bornAt = maxOf(event.atMillis, event.recordedAtMillis)
+                if (now - bornAt > ttl) {
+                    Log.w(TAG, "Dropping ${event.verb} marker for ${event.alarmId}, stale since $bornAt.")
                     expired.add(key)
                 } else {
                     events.add(event)

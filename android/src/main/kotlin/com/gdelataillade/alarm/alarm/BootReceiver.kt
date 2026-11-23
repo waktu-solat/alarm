@@ -4,12 +4,58 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.util.Log
+import com.gdelataillade.alarm.models.AlarmEventCause
+import com.gdelataillade.alarm.models.AlarmEventVerb
+import com.gdelataillade.alarm.models.AlarmSettings
+import com.gdelataillade.alarm.models.HostAlarmEvent
 import com.gdelataillade.alarm.services.AlarmStorage
 import com.gdelataillade.alarm.api.AlarmApiImpl
 
 class BootReceiver : BroadcastReceiver() {
     companion object {
         private const val TAG = "BootReceiver"
+
+        /**
+         * How late an alarm may be at boot and still ring.
+         *
+         * Backported from upstream 4a08937 (5.12), minus its per-alarm
+         * `androidStaleAfter` setting and Pigeon change: every stored alarm was
+         * re-armed at boot with no age limit, so every alarm that came due while
+         * the phone was off rang at once when it came back. 15 minutes is
+         * upstream's default — a reboot straddling the alarm still rings, a
+         * phone switched on hours later stays quiet. It must stay well above
+         * Dart's `_ringStartGrace` (3 min), or Dart would spare an alarm this
+         * path had already discarded. Drop this patch when taking upstream 5.12+.
+         */
+        internal const val STALE_AFTER_MILLIS = 15L * 60 * 1000
+
+        internal fun isStale(alarm: AlarmSettings, now: Long): Boolean =
+            now - alarm.dateTime.time > STALE_AFTER_MILLIS
+
+        /**
+         * Discards [alarm] and records why, instead of sounding it late.
+         *
+         * Nothing is reported to Dart from here: no Flutter engine is running at
+         * boot. The DROPPED marker is drained on the next `Alarm.init()`.
+         */
+        internal fun discardStaleAlarm(alarm: AlarmSettings, storage: AlarmStorage, now: Long) {
+            val event = HostAlarmEvent(
+                alarmId = alarm.id,
+                verb = AlarmEventVerb.DROPPED,
+                cause = AlarmEventCause.STALE_AT_BOOT,
+                atMillis = alarm.dateTime.time,
+                recordedAtMillis = now,
+            )
+            // Same order AlarmService uses when it drops a refused ring:
+            // unsaveAlarm deliberately keeps DROPPED markers.
+            storage.saveAlarmEvent(event)
+            storage.unsaveAlarm(alarm.id)
+            Log.i(
+                TAG,
+                "Alarm ${alarm.id} was due at ${alarm.dateTime}, more than " +
+                    "${STALE_AFTER_MILLIS / 60000} min before boot; discarded instead of ringing."
+            )
+        }
     }
 
     override fun onReceive(context: Context, intent: Intent) {
@@ -29,11 +75,19 @@ class BootReceiver : BroadcastReceiver() {
     private fun rescheduleAlarms(context: Context) {
         val alarmStorage = AlarmStorage(context)
         val storedAlarms = alarmStorage.getSavedAlarms()
+        // One reading for the whole batch, so alarms due at the same time are
+        // not judged differently because the loop took a moment.
+        val now = System.currentTimeMillis()
 
         Log.i(TAG, "Rescheduling ${storedAlarms.size} alarms")
 
         for (alarm in storedAlarms) {
             try {
+                if (isStale(alarm, now)) {
+                    discardStaleAlarm(alarm, alarmStorage, now)
+                    continue
+                }
+
                 Log.d(TAG, "Rescheduling alarm with ID: ${alarm.id}")
                 Log.d(TAG, "Alarm details: $alarm")
 
